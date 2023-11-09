@@ -5,6 +5,10 @@ const cors = require("cors");
 const taskRoutes = require('./routes/resid.routes');
 
 const app = express();
+const whitelist = [
+    "http://localhost:8080",
+    "https://ez-rental-kinsta-front.vercel.app",
+  ];
 
 app.use(cors());
 app.use(morgan('dev'));
