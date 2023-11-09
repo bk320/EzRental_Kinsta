@@ -8,6 +8,6 @@ dotenv.config();
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5714, 
+    port: 8080, 
   },
 })
