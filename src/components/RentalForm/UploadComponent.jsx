@@ -75,7 +75,7 @@ function UploadComponent({urls, setUrls, fileList, setFileList, setImageUploaded
     try {
       //llamar a peticion para subir archivo a drive y recibir url(ahora mismo con peticion de prueba)
       axios
-        .post("http://localhost:4000/api/upload", fmData, config)
+        .post("https://ezrentalback.fly.dev/api/upload", fmData, config)
         .then((res) => {
           setImageUploaded(true);
           onSuccess(file);
