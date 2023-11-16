@@ -7,6 +7,9 @@ import DetailOffers from '../components/DetailOffers/DetailOffers';
 import DetailCheckInOut from '../components/DetailCheckInOut/DetailCheckInOut';
 import { getImagesByResidence, getOneResidence, getServicesByResidence } from '../services/residences';
 import DetailsForGuestOnly from '../components/DetailsForGuestOnly/DetailsForGuestOnly';
+import AddReview from '../components/AddReview/AddReview';
+import ReviewsList from '../components/ReviewsList/ReviewsList';
+import { getAllReviewsByResidence } from '../services/reviews';
 
 
 function MoreInfoAds() {
@@ -15,6 +18,7 @@ function MoreInfoAds() {
   const [detailServices, setDetailServices] = useState({});
   const [imgsResidence, setImgsResidence] = useState([]);
   const [isRefresh, setIsRefresh] = useState(true);
+  const [reviewsResidence, setReviewsResidence] = useState([]);
   const setRefresh = (status) => {
     setIsRefresh(status);
   }
@@ -40,6 +44,13 @@ function MoreInfoAds() {
     }
   }, [setRefresh, isRefresh]);
 
+  useEffect(() => {
+    if (isRefresh) {
+      getAllReviewsByResidence(idAd).then((data) => setReviewsResidence(data));
+      setRefresh(false);
+    }
+  }, [isRefresh])
+
   return (
     <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
       <div style={{ display: 'flex', flexDirection: 'column', width: '1200px', maxWidth: '1200px' }}>
@@ -47,16 +58,17 @@ function MoreInfoAds() {
           title={detailAdd.titulo_residencia}
           city={detailAdd.ciudad_residencia}
           country={detailAdd.pais_residencia}
-          >
+        >
           <DetailsForGuestOnly
             numberMaxOfGuests={detailAdd.huesped_max_residencia}
-            initialDate = {detailAdd.fecha_inicio_estado? detailAdd.fecha_inicio_estado.split('T')[0].toString():null}
-            finalDate = {detailAdd.fecha_fin_estado? detailAdd.fecha_fin_estado.split('T')[0].toString():null}
-            daysMin = {detailAdd.dias_min_residencia}
-            daysMax = {detailAdd.dias_max_residencia -1}
+            initialDate={detailAdd.fecha_inicio_estado ? detailAdd.fecha_inicio_estado.split('T')[0].toString() : null}
+            finalDate={detailAdd.fecha_fin_estado ? detailAdd.fecha_fin_estado.split('T')[0].toString() : null}
+            daysMin={detailAdd.dias_min_residencia}
+            daysMax={detailAdd.dias_max_residencia - 1}
             isRefresh={isRefresh}
             setRefresh={setRefresh}
-            priceResidence = {detailAdd.precio_residencia}
+            priceResidence={detailAdd.precio_residencia}
+            idAd={idAd}
           />
 
         </DetailTitle>
@@ -75,7 +87,9 @@ function MoreInfoAds() {
           numberOfBeds={detailAdd.cama_residencia}
           numberOfBathrooms={detailAdd.banio_residencia}
           residenceTitle={detailAdd.titulo_residencia}
-          residenceUbication={detailAdd.direccion_residencia}
+          residenceAddress={detailAdd.direccion_residencia}
+          residenceUbication={detailAdd.ubicacion_residencia}
+          wppNumber={detailAdd.telefono_usuario}
           daysMax={detailAdd.dias_max_residencia}
         />
 
@@ -88,6 +102,15 @@ function MoreInfoAds() {
           checkOut={detailAdd.check_out_residencia}
         />
 
+        <AddReview
+          idAd={idAd}
+          isRefresh={isRefresh}
+          setRefresh={setRefresh}
+        />
+
+        <ReviewsList
+          detailReviews={reviewsResidence}
+        />
       </div>
     </div>
   )

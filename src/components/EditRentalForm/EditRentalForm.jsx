@@ -22,7 +22,6 @@ function EditRentalForm() {
   const setImageUploaded = (status) => {
     setIsImageUploaded(status)
   }
-  console.log(rangeDatesBody);
   const [editBody, setEditBody] = useState({
     /*     tituloResid: '',
         tipoResid: '',
@@ -58,17 +57,9 @@ function EditRentalForm() {
         imagen: urls */
   });
 
-  const validarinputmayor0 = (_, value) => {
-    if (value < 0) {
-      return Promise.reject('Debe ser mayor o igual a 0');
-    }
-    return Promise.resolve();
-  };
-
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setEditBody({ ...editBody, [name]: value }),
-      console.log(editBody)
+    setEditBody({ ...editBody, [name]: value });
   }
 
   const handleSelectChange = (value, name) => {
@@ -83,7 +74,6 @@ function EditRentalForm() {
     } else if (name === "ciudadResid") {
       setEditBody({ ...editBody, [name]: value });
     }
-    console.log(editBody);
   }
 
   const handleCheckedChange = (name) => {
@@ -92,8 +82,7 @@ function EditRentalForm() {
         ...prevEditBody,
         [name]: prevEditBody[name] === "true" ? "false" : "true",
       };
-      console.log(updatedEditBody);
-      const atLeastFiveChecked = Object.values(updatedEditBody).filter(((value) => value === "true")).length >=5; //Object.values(updatedEditBody).some((value) => value === "true");
+      const atLeastFiveChecked = Object.values(updatedEditBody).filter(((value) => value === "true")).length >= 5; //Object.values(updatedEditBody).some((value) => value === "true");
       setIsAtLeastFiveChecked(atLeastFiveChecked);
       return updatedEditBody;
     });
@@ -102,7 +91,6 @@ function EditRentalForm() {
 
   const handleDateChange = (dates) => {
     const [initialDate, finalDate] = dates;
-    console.log(initialDate);
     const rangeDatesFormat = [dayjs(initialDate, 'YYYY-MM-DD'), dayjs(finalDate, 'YYYY-MM-DD')]
     setEditBody((prevEditBody) => {
       const updatedEditBody = {
@@ -158,11 +146,12 @@ function EditRentalForm() {
       descripResid: dataAd.descripcion_residencia,
       huesMaxResid: dataAd.huesped_max_residencia,
       diasMaxResid: dataAd.dias_max_residencia,
-      diasMinResid: dataAd.dias_min_residencia,
       precioResid: dataAd.precio_residencia,
       checkInResid: dataAd.check_in_residencia,
       checkOutResid: dataAd.check_out_residencia,
       tipoAlojam: dataAd.tipo_alojamiento,
+      telefono: dataAd.telefono_usuario,
+      ubicacion: dataAd.ubicacion_residencia,
       wifi: dataAd.wifi_residencia,
       lavadora: dataAd.lavadora_residencia,
       cocina: dataAd.cocina_residencia,
@@ -178,7 +167,7 @@ function EditRentalForm() {
       estado: dataAd.estado_residencia,
       fechaIniEst: dataAd.fecha_inicio_estado,
       fechaFinEst: dataAd.fecha_fin_estado,
-      imagen: urls, 
+      imagen: urls,
       rangeDates: [dayjs(dataAd.fecha_inicio_estado), dayjs(dataAd.fecha_fin_estado)],
     })
     setIsAtLeastFiveChecked(true);
@@ -216,10 +205,10 @@ function EditRentalForm() {
     <>
       <div className="edit-form-container">
         <h2>Formulario de Edición</h2>
-        <Divider dashed />
+        <Divider />
         <Form
           name="formularioEdicion"
-          labelCol={{ span: 9 }}
+          labelCol={{ xs: 14, sm: 8, md: 14, lg: 11, xl: 10, xxl: 11 }}
           // wrapperCol={{ span: 16 }}
           initialValues={{ remember: true }}
           autoComplete="off"
@@ -231,12 +220,12 @@ function EditRentalForm() {
               <Form.Item
                 label="Estado del anuncio"
                 name="estado"
-                rules={[{ required: true, message: 'Por favor, selecciona un estado del anuncio.' }]}
+                rules={[{ required: true, message: 'Por favor, seleccione un estado del anuncio.' }]}
 
               >
                 <Select
                   className="select"
-                  placeholder="Selecciona el estado del anuncio"
+                  placeholder="Seleccione el estado del anuncio"
                   onChange={(value) => handleSelectChange(value, "estadoAnuncio")}
                 >
                   <Option value="Publicado"> Publicado </Option>
@@ -248,7 +237,32 @@ function EditRentalForm() {
               <Form.Item
                 name="tituloResid"
                 label="Título de la Residencia"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "En Construcción") || (editBody.estado === "Previsualización") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el título de la residencia.' }]
+                rules={[
+                  {
+                    required: ((editBody.estado === "Publicado") || (editBody.estado === "En Construcción") || (editBody.estado === "Previsualización") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el título de la residencia.',
+                  }, {
+                    validator: (_, value) => {
+                      if (value) {
+                        if (/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ ]+$/.test(value)) {
+                          return Promise.resolve();
+                        } else {
+                          return Promise.reject("Debe ingresar solo letras");
+                        }
+                      }
+                    },
+                  }, {
+                    whitespace: true,
+                    message: "No puede dejar en blanco este campo",
+                  },
+                  {
+                    min: 10,
+                    message: "Debe ingresar mínimo 10 caracteres",
+                  },
+                  {
+                    max: 50,
+                    message: "Solo puede ingresar 50 caracteres",
+                  },
+                ]
                 }
                 hasFeedback
               >
@@ -257,16 +271,57 @@ function EditRentalForm() {
                   className='input'
                   placeholder="Introduce el título de la residencia"
                   showCount
+                  minLength={10}
                   maxLength={50}
                   onChange={handleChange}
                 />
               </Form.Item>
 
               <Form.Item
+                name="telefono"
+                label="Número de Whatsapp"
+                rules={[
+                  {
+                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingrese su número de Whatsapp.'
+                  }, {
+                    validator: (_, value) => {
+                      if (!value) {
+                        return Promise.resolve();
+                      }
+                      const regularPhrase = /^\+?\d+$/;
+                      const validLength = value.length >= 8 && value.length <= 15;
+                      const validExtensions = ["+591", "+51", "+56"];
+                      if (regularPhrase.test(value) && validLength) {
+                        const isStartsWithValidExtension = validExtensions.some((extension) => value.startsWith(extension));
+                        return isStartsWithValidExtension
+                          ? Promise.resolve()
+                          : Promise.reject("Por favor, ingrese la extensión de su país. Ej. +591...")
+                      } else {
+                        return Promise.reject("Por favor, ingrese un número de Whatsapp válido");
+                      }
+                    }
+                  },
+                ]}
+                hasFeedback
+              >
+                <Input
+                  name="telefono"
+                  className="input"
+                  placeholder="Ingrese su número de Whatsapp (+591...)"
+                  onChange={handleChange}
+                />
+              </Form.Item>
+              <Form.Item
                 label="Descripción del Espacio"
                 name="descripResid"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa una descripción del espacio.' }]
-                }
+                rules={[
+                  {
+                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa una descripción del espacio.'
+                  }, {
+                    whitespace: true,
+                    message: "No puede dejar en blanco este campo"
+                  },
+                ]}
                 hasFeedback
               >
                 <Input.TextArea
@@ -283,8 +338,14 @@ function EditRentalForm() {
               <Form.Item
                 name="direcResid"
                 label="Dirección"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa la dirección.' }]
-                }
+                rules={[
+                  {
+                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa la dirección.'
+                  }, {
+                    whitespace: true,
+                    message: "No puede dejar este espacio en blanco",
+                  },
+                ]}
                 hasFeedback
               >
                 <Input
@@ -296,14 +357,45 @@ function EditRentalForm() {
               </Form.Item>
 
               <Form.Item
+                name="ubicacion"
+                label="Ubicación"
+                rules={[
+                  {
+                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingrese un enlace de google maps.'
+                  }, {
+                    validator: (_, value) => {
+                      if (!value) {
+                        return Promise.resolve();
+                      }
+                      const regularPhrase = /^https:\/\/maps\.app\.goo\.gl\/.*$/;
+                      if (regularPhrase.test(value)) {
+                        return Promise.resolve();
+                      } else {
+                        return Promise.reject("Por favor, ingrese un enlace válido");
+                      }
+                    }
+                  },
+                ]}
+                hasFeedback
+              >
+                <Input
+                  name="ubicacion"
+                  className="input"
+                  placeholder="https://www.google.com/maps/..."
+                  onChange={handleChange}
+                />
+              </Form.Item>
+
+              <Form.Item
                 name="paisResid"
                 label="País"
-                
+                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, seleccione su país.' }]
+                }
                 hasFeedback
               >
                 <Select
                   className="select"
-                  placeholder="Selecciona tu país"
+                  placeholder="Seleccione su país"
                   options={Object.keys(countryToCities).map((country) => {
                     return {
                       label: `${country}`,
@@ -318,12 +410,13 @@ function EditRentalForm() {
               <Form.Item
                 name="ciudadResid"
                 label="Ciudad"
-               
-                
+                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, seleccione su ciudad.' }]
+                }
+                hasFeedback
               >
                 <Select
                   className="select"
-                  placeholder="Selecciona tu ciudad"
+                  placeholder="Seleccione su ciudad"
                   options={
                     countryToCities[editBody.paisResid]?.map((city) => ({
                       label: `${city}`,
@@ -335,40 +428,23 @@ function EditRentalForm() {
                 </Select>
               </Form.Item>
 
-              {/* <Form.Item
-                name="paisResid"
-                label="País"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el país.' }]
-                }
-                hasFeedback
-              >
-                <Input
-                  name="paisResid"
-                  className='input'
-                  placeholder="Ingresa el país"
-                  onChange={handleChange}
-                />
-              </Form.Item>
-
-              <Form.Item
-                name="ciudadResid"
-                label="Ciudad"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa la ciudad.' }]
-                }
-                hasFeedback
-              >
-                <Input
-                  name="ciudadResid"
-                  className='input'
-                  placeholder="Ingresa la ciudad"
-                  onChange={handleChange}
-                />
-              </Form.Item> */}
-
               <Form.Item
                 name="precioResid"
                 label="Precio"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el precio de la residencia.' }, { validator: validarinputmayor0 }]}
+                rules={[
+                  {
+                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el precio de la residencia.'
+                  }, {
+                    validator: (_, value) =>
+                      value && /^\d+$/.test(value) && parseInt(value, 10) <= 10000
+                        ? Promise.resolve()
+                        : Promise.reject(
+                          new Error(
+                            "Debe ingresar solo números y un valor igual o menor a 10,000"
+                          )
+                        ),
+                  },
+                ]}
                 hasFeedback
               >
                 <Input
@@ -384,13 +460,13 @@ function EditRentalForm() {
               <Form.Item
                 name="tipoResid"
                 label="Tipo de Residencia"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, selecciona el tipo de residencia.' }]
+                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, seleccione el tipo de residencia.' }]
                 }
                 hasFeedback
               >
                 <Select
                   className="select"
-                  placeholder="Selecciona el tipo de residencia"
+                  placeholder="Seleccione el tipo de residencia"
                   onChange={(value) => handleSelectChange(value, "tipoResid")}
                 >
                   <Option value="Casa">Casa</Option>
@@ -403,12 +479,12 @@ function EditRentalForm() {
               <Form.Item
                 name="tipoAlojam"
                 label="Tipo de Alojamiento"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, selecciona el tipo de alojamiento.' }]}
+                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, seleccione el tipo de alojamiento.' }]}
                 hasFeedback
               >
                 <Select
                   className="select"
-                  placeholder="Selecciona el tipo de alojamiento"
+                  placeholder="Seleccione el tipo de alojamiento"
                   onChange={(value) => handleSelectChange(value, "tipoAlojam")}
                 >
                   <Option value="Compartido">Compartido</Option>
@@ -420,8 +496,24 @@ function EditRentalForm() {
               <Form.Item
                 name="diasMaxResid"
                 label="Número Máximo de dias"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el numero maximo de dias.' }, { validator: validarinputmayor0 }]
-                }
+                rules={[
+                  {
+                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el numero maximo de dias.'
+                  }, {
+                    validator: (_, value) => {
+                      const max = 10; // Establece el valor máximo permitido aquí
+                      if (value && parseInt(value, 10) <= max) {
+                        return Promise.resolve();
+                      } else {
+                        return Promise.reject(
+                          new Error(
+                            `Debe ingresar solo números y un valor mayor a cero, pero no mayor que ${max} días`
+                          )
+                        );
+                      }
+                    },
+                  },
+                ]}
                 hasFeedback
               >
                 <Input
@@ -434,24 +526,26 @@ function EditRentalForm() {
               </Form.Item>
 
               <Form.Item
-                name="diasMinResid"
-                label="Número Mínimo de dias"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el numero minimo de dias.' }, { validator: validarinputmayor0 }]
-                }
-                hasFeedback
-              >
-                <Input
-                  name="diasMinResid"
-                  className='input'
-                  placeholder="Ingresa el número mínimo de dias"
-                  type="number"
-                  onChange={handleChange}
-                />
-              </Form.Item>
-              <Form.Item
                 name="huesMaxResid"
                 label="Número Máximo de Huéspedes"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el numero maximo de Huesped.' }, { validator: validarinputmayor0 }]
+                rules={[
+                  {
+                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el numero maximo de Huesped.'
+                  }, {
+                    validator: (_, value) => {
+                      const max = 10; // Establece el valor máximo permitido aquí
+                      if (value && parseInt(value, 10) <= max) {
+                        return Promise.resolve();
+                      } else {
+                        return Promise.reject(
+                          new Error(
+                            `Debe ingresar solo números y un valor mayor a cero, pero no mayor que ${max}`
+                          )
+                        );
+                      }
+                    },
+                  },
+                ]
                 }
                 hasFeedback
               >
@@ -467,8 +561,24 @@ function EditRentalForm() {
               <Form.Item
                 name="camaResid"
                 label="Número de Camas"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el número de camas.' }, { validator: validarinputmayor0 }]
-                }
+                rules={[
+                  {
+                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el número de camas.'
+                  }, {
+                    validator: (_, value) => {
+                      const max = 100; // Establece el valor máximo permitido aquí
+                      if (value && parseInt(value, 10) <= max) {
+                        return Promise.resolve();
+                      } else {
+                        return Promise.reject(
+                          new Error(
+                            `Debe ingresar solo números, un valor mayor a cero y no mayor que ${max}.`
+                          )
+                        );
+                      }
+                    },
+                  },
+                ]}
                 hasFeedback
               >
                 <Input
@@ -483,8 +593,24 @@ function EditRentalForm() {
               <Form.Item
                 name="habitResid"
                 label="Número de Habitaciones"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el número de habitaciones.' }, { validator: validarinputmayor0 }]
-                }
+                rules={[
+                  {
+                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el número de habitaciones.'
+                  }, {
+                    validator: (_, value) => {
+                      const max = 100; // Establece el valor máximo permitido aquí
+                      if (value && parseInt(value, 10) <= max) {
+                        return Promise.resolve();
+                      } else {
+                        return Promise.reject(
+                          new Error(
+                            `Debe ingresar solo números, un valor mayor a cero y no mayor que ${max}.`
+                          )
+                        );
+                      }
+                    },
+                  },
+                ]}
                 hasFeedback
               >
                 <Input
@@ -499,8 +625,24 @@ function EditRentalForm() {
               <Form.Item
                 name="banioResid"
                 label="Número de Baños"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el número de baños.' }, { validator: validarinputmayor0 }]
-                }
+                rules={[
+                  {
+                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el número de baños.'
+                  }, {
+                    validator: (_, value) => {
+                      const max = 10; // Establece el valor máximo permitido aquí
+                      if (value && parseInt(value, 10) <= max) {
+                        return Promise.resolve();
+                      } else {
+                        return Promise.reject(
+                          new Error(
+                            `Debe ingresar solo números, un valor mayor a cero y no mayor que ${max}.`
+                          )
+                        );
+                      }
+                    },
+                  },
+                ]}
                 hasFeedback
               >
                 <Input
@@ -679,7 +821,7 @@ function EditRentalForm() {
 
               </Form.Item>
 
-              { editBody.estado !== "En Construcción" && editBody.estado !== "Previsualización" && editBody.estado !== "Inactivo" ?
+              {editBody.estado !== "En Construcción" && editBody.estado !== "Previsualización" && editBody.estado !== "Inactivo" ?
                 (
                   <div className="dates-edit-form-container">
                     <h3>Fechas de duracion del anuncio</h3>
@@ -728,34 +870,48 @@ function EditRentalForm() {
                 <Form.Item
                   name="checkInResid"
                   label="Check In"
-                  rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa la hora de check-in.' }]
-                  }
+
+                  rules={[
+                    {
+                      required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingrese las intrucciones de check-in.'
+                    }, {
+                      whitespace: true,
+                      message: "No puede dejar en blanco este campo"
+                    }
+                  ]}
                   hasFeedback
                 >
                   <Input.TextArea
                     name="checkInResid"
                     className='textArea'
-                    placeholder="Ingresa la hora de check-in"
+                    placeholder="Ingresa las instrucciones de check-in"
                     showCount
                     maxLength={800}
-                    autoSize={{ minRows: 8, maxRows: 8 }}
+                    autoSize={{ minRows: 9, maxRows: 9 }}
                     onChange={handleChange}
+
                   />
                 </Form.Item>
                 <Form.Item
                   name="checkOutResid"
                   label="Check Out"
-                  rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa la hora de check-out.' }]
-                  }
+                  rules={[
+                    {
+                      required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingrese las instrucciones de check-out.'
+                    }, {
+                      whitespace: true,
+                      message: "No puede dejar en blanco este campo"
+                    }
+                  ]}
                   hasFeedback
                 >
                   <Input.TextArea
                     name="checkOutResid"
                     className='textArea'
-                    placeholder="Ingresa la hora de check-out"
+                    placeholder="Ingrese las instrucciones de check-out"
                     showCount
                     maxLength={800}
-                    autoSize={{ minRows: 8, maxRows: 8 }}
+                    autoSize={{ minRows: 9, maxRows: 9 }}
                     onChange={handleChange}
                   />
                 </Form.Item>
@@ -767,13 +923,13 @@ function EditRentalForm() {
             <Form.Item
               name="imagen"
               rules={[
-                { required: ((editBody.estado === "Publicado") || (editBody.estado === "En Construcción") || (editBody.estado === "Previsualización") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")) && !isImageUploaded },
+                { required: ((editBody.estado === "Publicado") || (editBody.estado === "En Construcción") || (editBody.estado === "Previsualización") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")) && !isImageUploaded, message: "" },
                 {
                   validator: (_, value) => {
                     if (isImageUploaded) {
                       return Promise.resolve();
                     } else {
-                      return Promise.reject("Por favor, suba una imagen");
+                      return Promise.reject("Por favor, suba minimamente 5 imágenes");
                     }
                   }
                 }
@@ -788,7 +944,7 @@ function EditRentalForm() {
               />
             </Form.Item>
           </div>
-          <Divider dashed />
+          <Divider />
           <Form.Item>
             <div className="btns-edit-form-flex-container">
               <div>
@@ -797,7 +953,7 @@ function EditRentalForm() {
                 </Button>
               </div>
               <div>
-                <Button style={{ width: '10vw' }} htmlType="button" onClick={onCancel}>
+                <Button htmlType="button" onClick={onCancel}>
                   Cancelar
                 </Button>
               </div>

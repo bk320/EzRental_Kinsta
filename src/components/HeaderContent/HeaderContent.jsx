@@ -1,5 +1,4 @@
 import React from 'react';
-
 import { Button, Switch } from 'antd';
 import { MenuUnfoldOutlined, MenuFoldOutlined } from '@ant-design/icons';
 import './headerContentStyles.css';
@@ -12,7 +11,6 @@ function HeaderContent({ sideMenuCollapsed, displaySideMenu, switchMode, setSwit
       setSwitchMode();
       navigate('mis-anuncios');
     }else{
-      
       setSwitchMode();
       navigate('/');
     }
