@@ -3,7 +3,8 @@ import { Empty, List } from 'antd';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
 import homePageEnDesarrollo from '../assets/homePageEnDesarrollo.jpg';
 import HostCard from '../components/HostCard/HostCard';
-import { getAllResidences, getImagesByResidence } from '../services/residences';
+import { getAllResidences, getImagesByResidence, getPublishedResidencesByUser } from '../services/residences';
+import { useAuth } from '../contexts/authContext';
 
 function MyAds() {
   const [residences, setResidences] = useState([]);
@@ -11,13 +12,15 @@ function MyAds() {
 /*   const [urls, setUrls] = useState([]);
   const [fileList, setFileList] = useState([]); */
 
+  const { user } = useAuth()
+
   const setRefresh = (status) => {
     setIsRefresh(status);
   }
 
   useEffect(() => {
     if (isRefresh) {
-      getAllResidences().then((data) => setResidences(data));
+      getPublishedResidencesByUser(user.uid).then((data) => setResidences(data));
       setRefresh(false);
     }
   }, [setRefresh, isRefresh]);
@@ -61,15 +64,15 @@ function MyAds() {
         grid={{
           xs: 1,
           sm: 2,
-          md: 3,
-          lg: 4,
-          xl: 5,
-          xxl: 6
+          md: 2,
+          lg: 3,
+          xl: 4,
+          xxl: 4
         }}
         pagination={{
           onChange: page => {
             console.log(page);
-          }, pageSize: 10,
+          }, pageSize: 8,
         }}
         locale={customEmptyMessage}
         dataSource={residences}

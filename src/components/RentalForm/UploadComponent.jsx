@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import "./rentalFormStyles.css";
 import { Upload, Modal, message } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
-import axios from "axios";
+import { PlusOutlined, FullscreenExitOutlined } from "@ant-design/icons";
 import DescriptionModal from "./DescriptionModal";
 import { createImgResidence } from "../../services/residences";
+import imageCompression from "browser-image-compression";
 
 function UploadComponent({ urls, setUrls, fileList, setFileList, setImageUploaded }) {
 
@@ -21,6 +21,7 @@ function UploadComponent({ urls, setUrls, fileList, setFileList, setImageUploade
   const [previewTitle, setPreviewTitle] = useState("");
   const [previewDescription, setPreviewDescription] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const openDescriptionModal = () => {
     setModalVisible(true);
@@ -64,8 +65,12 @@ function UploadComponent({ urls, setUrls, fileList, setFileList, setImageUploade
 
 
   const uploadImage = async (options) => {
+    setUploading(true);
     const { onSuccess, onError, file, onProgress } = options;
-
+    const compressedImage = await imageCompression(file, {
+      fileType: "image/webp",
+      maxSizeMB: 1
+    })
     const fmData = new FormData();
     const config = {
       headers: { "content-type": "multipart/form-data" },
@@ -75,7 +80,7 @@ function UploadComponent({ urls, setUrls, fileList, setFileList, setImageUploade
       },
     };
 
-    fmData.append("image", file);
+    fmData.append("image", compressedImage);
     console.log(fmData.get("image"));
 
     try {
@@ -87,16 +92,16 @@ function UploadComponent({ urls, setUrls, fileList, setFileList, setImageUploade
           //añadir url recibida del response al array urls
           // urls.push(`https://drive.google.com/uc?export=view&id=${res.data.fileId}`);
           
-          // urls.push({link: res.data.imgUrl, descripcion: ""});
-          urls.push(response.data.imgUrl);
+          urls.push({imagen_residencia: response.data.imgUrl, descripcion_imagen: ""});
+          // urls.push(response.data.imgUrl);
           
           setImageUploaded(urls.length > 4);
           openDescriptionModal();
 
-          // fileList.length > 9 ? message.info("Solo puede subir 10 fotos") : "";
         });
     } catch {
       (error) => {
+        setUploading(false);
         const errorMessage = error.response ? error.response.data : "Error desconocido";
         onError(errorMessage); // Llamar a onError con el mensaje de error
         return Upload.LIST_IGNORE;
@@ -120,9 +125,9 @@ function UploadComponent({ urls, setUrls, fileList, setFileList, setImageUploade
       return Upload.LIST_IGNORE;
     }
 
-    const validSize = file.size / 1024 / 1024 < 10;
+    const validSize = file.size / 1024 / 1024 < 5;
     if (!validSize) {
-      message.error('El peso máximo de la imagen no debe pasar 10MB');
+      message.error('El peso máximo de la imagen no debe pasar 5MB');
       return Upload.LIST_IGNORE;
     }
 
@@ -144,10 +149,9 @@ function UploadComponent({ urls, setUrls, fileList, setFileList, setImageUploade
         beforeUpload={handleValidation}
         onRemove={(file) => handleRemove(file, fileList.indexOf(file))}
       >
-        {fileList.length >= 10 ? null : uploadButton}
-      </Upload>
+        {fileList.length >= 10 || uploading ? null : uploadButton}
 
-      {/* {fileList.length >= 1 && fileList.length < 5 ? <p>Debe subir al menos 5 fotos</p> : ""} */}
+      </Upload>
 
       <Modal
         open={previewOpen}
@@ -162,17 +166,18 @@ function UploadComponent({ urls, setUrls, fileList, setFileList, setImageUploade
           }}
           src={previewImage}
         />
-        {/* <b>{previewDescription}</b> */}
+        <b>{previewDescription}</b>
       </Modal>
 
-      {/* {urls.length > 0 ? (
+      {urls.length > 0 ? (
         <DescriptionModal
           visible={modalVisible}
           urls={urls}
           index={urls.length - 1}
           onClose={closeDescriptionModal}
+          setUploading={setUploading}
         />
-      ) : null} */}
+      ) : null}
     </>
   );
 }

@@ -3,7 +3,7 @@ import { Modal, Button, Input, Select, message } from "antd";
 import { ExclamationCircleTwoTone } from '@ant-design/icons';
 import "./DescriptionModalStyles.css"
 
-function DescriptionModal({ visible, urls, index, onClose }) {
+function DescriptionModal({ visible, urls, index, onClose, setUploading }) {
 
   const {Option} = Select;
   const [selected, setSelected] = useState(null);
@@ -12,19 +12,20 @@ function DescriptionModal({ visible, urls, index, onClose }) {
   const saveDescription = () => {
     if (selected == "Otro") {
       if (description != null && description != "") {
-        urls[index].descripcion = description;
+        urls[index].descripcion_imagen = description;
         onClose();
       } else {
         message.error("Ingrese una descripción");
       }
     } else {
       if (selected != null) {
-        urls[index].descripcion = selected;
+        urls[index].descripcion_imagen = selected;
         onClose();
       } else {
         message.error("Seleccione una descripción");
       }
     }
+    setUploading(false);
     urls.length > 9 ? message.info("Solo puede subir 10 fotos") : "";
     setDescription(null);
     setSelected(null);
@@ -65,7 +66,7 @@ function DescriptionModal({ visible, urls, index, onClose }) {
           style={{
             width: "100%",
           }}
-          src={urls[index].link}
+          src={urls[index].imagen_residencia}
         />
 
         {selected != "Otro" ? (

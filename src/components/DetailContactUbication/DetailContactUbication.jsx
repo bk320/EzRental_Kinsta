@@ -1,9 +1,7 @@
 import React from 'react'
 import { Tooltip, Image } from 'antd';
 import { WhatsAppOutlined } from '@ant-design/icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMapLocationDot } from '@fortawesome/free-solid-svg-icons';
-import gMapsIcon from '../../assets/gMapsIcon.png';
+import gMapsIcon from '../../assets/gMapsIcon.webp';
 import './detailContactUbicationStyles.css';
 
 function DetailContactUbication({ residenceAddress, residenceTitle, residenceUbication, wppNumber }) {
@@ -19,7 +17,7 @@ function DetailContactUbication({ residenceAddress, residenceTitle, residenceUbi
     <div className="detail-contact-ubication-flex-container">
       <div className='detail-contact-ubication-container'>
         <div className="detail-contact-container">
-          <h3>Contáctame previa tu llegada! </h3>
+          <h3>Contáctame previa tu llegada! &#10132; </h3>
           <Tooltip
             title={wppNumber}
           >

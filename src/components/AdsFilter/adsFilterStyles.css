@@ -1,4 +1,8 @@
-.filter-ads-container{
+.display-filter-ads {
+  display: block;
+}
+
+.filter-ads-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -15,23 +19,23 @@
   margin-bottom: 17px;
 }
 
-.filter-country{
+.filter-country {
   width: 100px !important;
 }
 
-.filter-city{
+.filter-city {
   width: 110px !important;
 }
 
-.filter-range-dates{
+.filter-range-dates {
   width: 180px !important;
 }
 
-.filter-count-guest{
+.filter-count-guest {
   width: 110px !important;
 }
 
-.filter-range-price-container{
+.filter-range-price-container {
   width: 250px;
 }
 
@@ -40,18 +44,69 @@
 } */
 
 
-.range-price-selected{
+.range-price-selected {
   text-align: center;
   color: gray;
 }
 
-.btn-reset-filters{
+.btn-reset-filters {
   padding: 0 5px !important;
 }
 
-.places-count{
+.places-count {
   display: flex;
   justify-content: space-between;
   margin-left: 35px;
 }
 
+
+@media (320px <=width <=480px) {
+  .display-filter-ads {
+    display: none;
+  }
+}
+
+@media (480px <=width <=576px) {
+  .display-filter-ads {
+    display: none;
+  }
+}
+
+@media (576px <=width <=768px) {
+  .display-filter-ads {
+    display: none;
+  }
+}
+
+@media (768px <=width <=1024px) {
+  .display-filter-ads {
+    display: none;
+  }
+}
+
+@media (1024px <=width <=1200px) {
+  .filter-ads-container {
+    border-radius: 20px;
+    gap: 0px;
+    padding: 0 10px;
+    margin: 0 0;
+    margin-bottom: 17px;
+  }
+
+  .places-count {
+    display: flex;
+    margin-left: 10px;
+  }
+
+  .btn-reset-filters {
+    display: block;
+  }
+
+  .btn-reset-filters-text {
+    display: none !important;
+  }
+}
+
+/* @media (1200px <=width <=1440px) {
+  
+} */

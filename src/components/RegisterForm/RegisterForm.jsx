@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Button, Divider, Form, Input, Select, Typography, Upload, message } from "antd";
 import { PlusOutlined, LoginOutlined, UserAddOutlined } from "@ant-design/icons";
 import { useAuth } from "../../contexts/authContext";
-import ezRental from '../../assets/EzRental Transparente v2.png';
-import axios from "axios";
+import ezRental from '../../assets/EzRental Transparente v2.webp';
 import "./RegisterForm.css";
 import { createImgResidence } from "../../services/residences";
+import { createUser } from "../../services/users";
 
 function RegisterForm({ formFlag, switchForm }) {
   const [userData, setUserData] = useState({
@@ -15,6 +15,8 @@ function RegisterForm({ formFlag, switchForm }) {
     password: "",
     phoneNumber: "",
   });
+
+  const [userPost, setUserPost] = useState({})
 
   const navigate = useNavigate();
   const { register } = useAuth();
@@ -33,12 +35,20 @@ function RegisterForm({ formFlag, switchForm }) {
   const handleFinish = async () => {
 
     try {
-      await register(
+      const user = await register(
         userData.email,
         userData.password,
         userData.fullname,
         userData.photoURL
       );
+
+      // setUserPost((prevStateUserPost) =>({...prevStateUserPost,         codigo: user.uid,
+      //   nombre: userData.fullname,
+      //   correo: userData.email,
+      //   foto: userData.photoURL}))
+      
+      await createUser({codigo: user.uid, nombre: userData.fullname, correo: userData.email, foto: userData.photoURL});
+
       navigate("/");
     } catch (error) {
       console.log(error.code);
@@ -113,9 +123,9 @@ function RegisterForm({ formFlag, switchForm }) {
       return Upload.LIST_IGNORE;
     }
 
-    const validSize = file.size / 1024 / 1024 < 10;
+    const validSize = file.size / 1024 / 1024 < 5;
     if (!validSize) {
-      message.error("El peso máximo de la imagen no debe pasar 10MB");
+      message.error("El peso máximo de la imagen no debe pasar 5MB");
       return Upload.LIST_IGNORE;
     }
   };
@@ -131,7 +141,7 @@ function RegisterForm({ formFlag, switchForm }) {
         autoComplete="off"
       >
         <Typography.Title level={1} style={{ fontSize: "40px", margin: '10px 0 0 0' }}>
-          ¡Registrate!
+          ¡Regístrate!
         </Typography.Title>
         <div className="logo-ez-rental-register-container">
           <img src={ezRental} ></img>
@@ -231,7 +241,7 @@ function RegisterForm({ formFlag, switchForm }) {
             maxCount={1}
             customRequest={uploadImage}
             beforeUpload={handleValidation}
-            listType="picture-card"
+            listType="picture"
             fileList={fileList}
             onChange={handleChangeUpload}
             accept="image/png, image/jpeg"
