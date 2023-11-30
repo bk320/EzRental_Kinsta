@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Button, Divider, InputNumber, Modal, Popover, Select, Slider, DatePicker } from 'antd';
+import { Button, Divider, InputNumber, Modal, Popover, Select, Slider, DatePicker, Input } from 'antd';
 import { FilterOutlined } from '@ant-design/icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGlobe, faEarthAmericas, faBuildingUser, faPersonWalkingLuggage, faSliders } from '@fortawesome/free-solid-svg-icons';
 import dayjs from 'dayjs';
 import './adsFilterModalStyles.css';
 
-function AdsFilterModal({ selectedCountry, handleCountryChange, countries, selectedCity, cities, handleCityChange, dateRange, handleDateRangeChange, guestsCount, handleGuestsCountChange, priceRange, marks, handlePriceRangeChange, handleResetFilters, residences, filteredResidences, setFilteredResidences }) {
+function AdsFilterModal({ selectedCountry, handleCountryChange, countries, selectedCity, cities, handleCityChange, dateRange, handleDateRangeChange, guestsCount, handleGuestsCountChange, priceRange, marks, handlePriceRangeChange, handleResetFilters, residences, filteredResidences, setFilteredResidences,search,handleSearchChange,onSearch }) {
   const { RangePicker } = DatePicker;
+  const { Search } = Input;
   const [filterModal, setFilterModal] = useState(false);
   const openFilterModal = () => {
     setFilterModal(true);
@@ -31,6 +32,17 @@ function AdsFilterModal({ selectedCountry, handleCountryChange, countries, selec
         maskClosable={false}
       >
         <div className="modal-filter-ads-container">
+          <Divider className="divider">Busque anuncio(s)</Divider>
+          <Search
+            className="modal-search-keyword"
+            placeholder="Ingrese palabra clave"
+            value={search}
+            onChange={handleSearchChange}
+            onSearch={onSearch}
+            allowClear
+          >
+
+          </Search>
           <Divider className="divider">Seleccione un País</Divider>
           <Select
             className="modal-filter-country"
@@ -85,7 +97,7 @@ function AdsFilterModal({ selectedCountry, handleCountryChange, countries, selec
             onChange={handleGuestsCountChange}
           />
           <Divider className="divider">Ingrese el rango de precios</Divider>
-          
+
           <Popover
             content={
               <div style={{ textAlign: 'center' }}>
