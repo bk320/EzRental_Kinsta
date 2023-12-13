@@ -17,9 +17,7 @@ import PasswordRecovery from './pages/PasswordRecovery';
 import MyReserves from './pages/MyReserves';
 import MyRents from './pages/MyRents';
 
-
 function App() {
-  
   return (
     <>
       {/* 
