@@ -11,7 +11,8 @@ import DetailsForGuestOnly from '../components/DetailsForGuestOnly/DetailsForGue
 import AddReview from '../components/AddReview/AddReview';
 import ReviewsList from '../components/ReviewsList/ReviewsList';
 import { getAllReviewsByResidence } from '../services/reviews';
-import { getRentalsByResidence } from '../services/rentals';
+import { getAllRentalsByUser, getRentalsByResidence } from '../services/rentals';
+import { useAuth } from '../contexts/authContext';
 
 
 function MoreInfoAds() {
@@ -22,14 +23,21 @@ function MoreInfoAds() {
   const [isRefresh, setIsRefresh] = useState(true);
   const [reviewsResidence, setReviewsResidence] = useState([]);
   const [rentals, setRentals] = useState([]);
+  const [reservesByUser, setReservesByUser] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pauseDates, setPauseDates] = useState([]);
+  const { user } = useAuth();
+
   const setRefresh = (status) => {
     setIsRefresh(status);
   }
 
   useEffect(() => {
     if (isRefresh) {
-      getOneResidence(idAd).then((data) => setDetailAdd(data));
+      getOneResidence(idAd).then((data) => {
+        setDetailAdd(data)
+        setPauseDates(data.fechas_pausado)
+      });
       setRefresh(false);
       setLoading(false);
     }
@@ -68,6 +76,16 @@ function MoreInfoAds() {
       })
     }
   }, [isRefresh, idAd])
+
+  useEffect(() => {
+    if (isRefresh) {
+      getAllRentalsByUser(user.uid).then((data) => {
+        setReservesByUser(data);
+      })
+      setRefresh(false);
+      setLoading(false);
+    }
+  }, [isRefresh]);
   return (
     <Spin spinning={loading} tip="Cargando...">
       <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
@@ -79,14 +97,15 @@ function MoreInfoAds() {
           >
             <DetailsForGuestOnly
               numberMaxOfGuests={detailAdd.huesped_max_residencia}
-              initialDate={detailAdd.fecha_inicio_estado ? detailAdd.fecha_inicio_estado.split('T')[0].toString() : null}
-              finalDate={detailAdd.fecha_fin_estado ? detailAdd.fecha_fin_estado.split('T')[0].toString() : null}
+              initialDate={detailAdd.fecha_inicio_publicado ? detailAdd.fecha_inicio_publicado.split('T')[0].toString() : null}
+              finalDate={detailAdd.fecha_fin_publicado ? detailAdd.fecha_fin_publicado.split('T')[0].toString() : null}
               daysMax={detailAdd.dias_max_residencia - 1}
               isRefresh={isRefresh}
               setRefresh={setRefresh}
               priceResidence={detailAdd.precio_residencia}
               idAd={idAd}
               rentals={rentals}
+              pauseDates={pauseDates}
             />
 
           </DetailTitle>
@@ -111,6 +130,7 @@ function MoreInfoAds() {
             daysMax={detailAdd.dias_max_residencia}
             hostName={detailAdd.nombre_usuario}
             hostPhoto={detailAdd.foto_usuario}
+            reservesByUser={reservesByUser}
           />
 
           <DetailOffers
@@ -120,14 +140,6 @@ function MoreInfoAds() {
           <DetailCheckInOut
             checkIn={detailAdd.check_in_residencia}
             checkOut={detailAdd.check_out_residencia}
-          />
-
-          <AddReview
-            idAd={idAd}
-            isRefresh={isRefresh}
-            setRefresh={setRefresh}
-            rentals={rentals}
-            reviewsResidence={reviewsResidence}
           />
 
           <ReviewsList

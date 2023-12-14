@@ -13,36 +13,36 @@ function AdsFilter({ residences, filteredResidences, setFilteredResidences, coun
   const [selectedCity, setSelectedCity] = useState(null);
   const [dateRange, setDateRange] = useState(null);
   const [guestsCount, setGuestsCount] = useState(null);
-  const [priceRange, setPriceRange] = useState([0, 5000]);
+  const [priceRange, setPriceRange] = useState([0, 10000]);
   const [search, setSearch] = useState("");
   const { RangePicker } = DatePicker;
   const { Search } = Input;
-const handleSearchChange = (e) => {
-  const { value } = e.target;
-  setSearch(value);
+  const handleSearchChange = (e) => {
+    const { value } = e.target;
+    setSearch(value);
 
-  // Si la cadena de búsqueda está vacía, restablece las residencias filtradas
-  if (value === "") {
-    setFilteredResidences(residences);
+    // Si la cadena de búsqueda está vacía, restablece las residencias filtradas
+    if (value === "") {
+      setFilteredResidences(residences);
+    }
   }
-}
 
-const onSearch = () => {
-  // Obtén la cadena de búsqueda en minúsculas
-  const searchLower = search.toLowerCase();
+  const onSearch = () => {
+    // Obtén la cadena de búsqueda en minúsculas
+    const searchLower = search.toLowerCase();
 
-  // Filtra las residencias basadas en la cadena de búsqueda
-  const searchResults = residences.filter((residence) => {
-    // Convierte el título de la residencia a minúsculas para realizar una comparación insensible a mayúsculas y minúsculas
-    const residenceTitleLower = residence.titulo_residencia.toLowerCase();
+    // Filtra las residencias basadas en la cadena de búsqueda
+    const searchResults = residences.filter((residence) => {
+      // Convierte el título de la residencia a minúsculas para realizar una comparación insensible a mayúsculas y minúsculas
+      const residenceTitleLower = residence.titulo_residencia.toLowerCase();
 
-    // Verifica si la oración completa del título contiene la cadena de búsqueda
-    return residenceTitleLower.includes(searchLower);
-  });
+      // Verifica si la oración completa del título contiene la cadena de búsqueda
+      return residenceTitleLower.includes(searchLower);
+    });
 
-  // Actualiza las residencias filtradas
-  setFilteredResidences(searchResults);
-}
+    // Actualiza las residencias filtradas
+    setFilteredResidences(searchResults);
+  }
 
 
 
@@ -55,10 +55,10 @@ const onSearch = () => {
     setFilteredResidences(residences.filter(residence => // Se realiza un mapeo de las residencias y se guarda en un arreglo solo los que cumplan con las condiciones, posteriormente se guarda en el estado local filteredResidences
       (!value || residence.pais_residencia === value) && // Si value es falsy (null, undefined, etc.) entonces toda la expresion en true, sino se evalua la segunda expresion residence.pais_residencia === value
       (!selectedCity || residence.ciudad_residencia === selectedCity) &&// Si value es falsy (null, undefined, etc.) entonces toda la expresion en true, sino se evalua la segunda expresion residence.ciudad_residencia === selectedCity
-      (!dateRange ||(
+      (!dateRange || (
         (
-          dateRange[0] >= dayjs(residence.fecha_inicio_estado[0]) &&
-          dateRange[1] <= dayjs(residence.fecha_fin_estado[0]).add(1, 'day')
+          dateRange[0] >= dayjs(residence.fecha_inicio_publicado) &&
+          dateRange[1] <= dayjs(residence.fecha_fin_publicado).add(1, 'day')
         ) &&
         !residence.fechas_renta.some(fechaRenta =>
           dayjs(dateRange[0]).format('YYYY-MM-DD') >= dayjs(fechaRenta[0]).format('YYYY-MM-DD') && dayjs(dateRange[0]).format('YYYY-MM-DD') <= dayjs(fechaRenta[1]).format('YYYY-MM-DD') ||
@@ -75,10 +75,10 @@ const onSearch = () => {
     setFilteredResidences(residences.filter(residence =>
       (!selectedCountry || residence.pais_residencia === selectedCountry) &&
       (!value || residence.ciudad_residencia === value) &&
-      (!dateRange ||(
+      (!dateRange || (
         (
-          dateRange[0] >= dayjs(residence.fecha_inicio_estado[0]) &&
-          dateRange[1] <= dayjs(residence.fecha_fin_estado[0]).add(1, 'day')
+          dateRange[0] >= dayjs(residence.fecha_inicio_publicado) &&
+          dateRange[1] <= dayjs(residence.fecha_fin_publicado).add(1, 'day')
         ) &&
         !residence.fechas_renta.some(fechaRenta =>
           dayjs(dateRange[0]).format('YYYY-MM-DD') >= dayjs(fechaRenta[0]).format('YYYY-MM-DD') && dayjs(dateRange[0]).format('YYYY-MM-DD') <= dayjs(fechaRenta[1]).format('YYYY-MM-DD') ||
@@ -98,8 +98,8 @@ const onSearch = () => {
       (!selectedCity || residence.ciudad_residencia === selectedCity) &&
       (!dates || (
         (
-          dates[0] >= dayjs(residence.fecha_inicio_estado[0]) &&
-          dates[1] <= dayjs(residence.fecha_fin_estado[0]).add(1, 'day')
+          dates[0] >= dayjs(residence.fecha_inicio_publicado) &&
+          dates[1] <= dayjs(residence.fecha_fin_publicado).add(1, 'day')
         ) &&
         // Utilizamos el método some para verificar si alguna de las fechas_renta coincide con el rango de fechas seleccionado uwu
         !residence.fechas_renta.some(fechaRenta =>
@@ -117,10 +117,10 @@ const onSearch = () => {
     setFilteredResidences(residences.filter(residence =>
       (!selectedCountry || residence.pais_residencia === selectedCountry) &&
       (!selectedCity || residence.ciudad_residencia === selectedCity) &&
-      (!dateRange ||(
+      (!dateRange || (
         (
-          dateRange[0] >= dayjs(residence.fecha_inicio_estado[0]) &&
-          dateRange[1] <= dayjs(residence.fecha_fin_estado[0]).add(1, 'day')
+          dateRange[0] >= dayjs(residence.fecha_inicio_publicado) &&
+          dateRange[1] <= dayjs(residence.fecha_fin_publicado).add(1, 'day')
         ) &&
         !residence.fechas_renta.some(fechaRenta =>
           dayjs(dateRange[0]).format('YYYY-MM-DD') >= dayjs(fechaRenta[0]).format('YYYY-MM-DD') && dayjs(dateRange[0]).format('YYYY-MM-DD') <= dayjs(fechaRenta[1]).format('YYYY-MM-DD') ||
@@ -137,10 +137,10 @@ const onSearch = () => {
     setFilteredResidences(residences.filter(residence =>
       (!selectedCountry || residence.pais_residencia === selectedCountry) &&
       (!selectedCity || residence.ciudad_residencia === selectedCity) &&
-      (!dateRange ||(
+      (!dateRange || (
         (
-          dateRange[0] >= dayjs(residence.fecha_inicio_estado[0]) &&
-          dateRange[1] <= dayjs(residence.fecha_fin_estado[0]).add(1, 'day')
+          dateRange[0] >= dayjs(residence.fecha_inicio_publicado) &&
+          dateRange[1] <= dayjs(residence.fecha_fin_publicado).add(1, 'day')
         ) &&
         !residence.fechas_renta.some(fechaRenta =>
           dayjs(dateRange[0]).format('YYYY-MM-DD') >= dayjs(fechaRenta[0]).format('YYYY-MM-DD') && dayjs(dateRange[0]).format('YYYY-MM-DD') <= dayjs(fechaRenta[1]).format('YYYY-MM-DD') ||
@@ -154,11 +154,11 @@ const onSearch = () => {
 
   const marks = {
     0: 'Bs.0',
-    1000: '1000',
     2000: '2000',
-    3000: '3000',
     4000: '4000',
-    5000: 'Bs.5000',
+    6000: '6000',
+    8000: '8000',
+    10000: 'Bs.10000',
   }
 
   const handleResetFilters = () => {
@@ -169,7 +169,7 @@ const onSearch = () => {
     setCities([]);
     setDateRange(null);
     setGuestsCount(null);
-    setPriceRange([0, 5000]);
+    setPriceRange([0, 10000]);
     setFilteredResidences(residences);
   };
 
@@ -282,7 +282,7 @@ const onSearch = () => {
                 range
                 marks={marks}
                 min={0}
-                max={5000}
+                max={10000}
                 step={100}
                 defaultValue={priceRange}
                 onChange={handlePriceRangeChange}
@@ -300,7 +300,7 @@ const onSearch = () => {
           </Button>
         </div>
         <div className="places-count">
-          <h3>Lugares ( {filteredResidences.filter(residence => residence.estado_residencia[0] === "Publicado" || residence.estado_residencia[0] === "Alquilado").length} )</h3>
+          <h3>Lugares ( {filteredResidences.filter(residence => residence.estado_residencia === "Publicado" || residence.estado_residencia === "Alquilado" || residence.estado_residencia === "Pausado").length} )</h3>
         </div>
       </div>
     </>

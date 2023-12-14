@@ -7,6 +7,7 @@ import UploadComponent from '../RentalForm/UploadComponent';
 import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from "dayjs";
 import "./editRentalFormStyles.css"
+import { getRentalsByResidence } from '../../services/rentals';
 
 function EditRentalForm() {
   let { idMyAd } = useParams();
@@ -20,8 +21,13 @@ function EditRentalForm() {
   const [form] = Form.useForm();
   const [isAtLeastFiveChecked, setIsAtLeastFiveChecked] = useState(false);
   const [rangeDatesBody, setRangeDatesBody] = useState([null, null]);
+  const [selectedStartDate, setSelectedStartDate] = useState(null);
+  const [selectedEndDate, setSelectedEndDate] = useState(null);
   const [isImageUploaded, setIsImageUploaded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [stateAd, setStateAd] = useState("");
+  const [rentals, setRentals] = useState([]);
+  const [pauseDates, setPauseDates] = useState([]);
   const setImageUploaded = (status) => {
     setIsImageUploaded(status)
   }
@@ -100,6 +106,8 @@ function EditRentalForm() {
         ...prevEditBody, rangeDates: rangeDatesFormat,
       }
       setRangeDatesBody(updatedEditBody.rangeDates);
+      setSelectedStartDate(updatedEditBody.rangeDates[0]);
+      setSelectedEndDate(updatedEditBody.rangeDates[1]);
       return updatedEditBody;
     })
   };
@@ -113,7 +121,9 @@ function EditRentalForm() {
   useEffect(() => {
     const fetchData = async () => {
       const data = await getOneResidence(idMyAd);
+      console.log(data);
       setDataAd(data);
+      setPauseDates(data.fechas_pausado);
       setLoading(false);
     }
     fetchData();
@@ -170,23 +180,23 @@ function EditRentalForm() {
       camaras: dataAd.camaras_segurid_residencia,
       detectorHumo: dataAd.humo_segurid_residencia,
       estado: dataAd.estado_residencia,
-      fechaIniEst: dataAd.fecha_inicio_estado,
-      fechaFinEst: dataAd.fecha_fin_estado,
+      fechaIniEst: dataAd.fecha_inicio_publicado,
+      fechaFinEst: dataAd.fecha_fin_publicado,
       imagen: urls,
-      rangeDates: [dayjs(dataAd.fecha_inicio_estado), dayjs(dataAd.fecha_fin_estado)],
+      rangeDates: [dayjs(dataAd.fecha_inicio_publicado), dayjs(dataAd.fecha_fin_publicado)],
     })
     setIsAtLeastFiveChecked(true);
   }, [dataAd, urls]);
 
   useEffect(() => {
     form.setFieldsValue(editBody);
+    setStateAd(editBody.estado);
     setLoading(false);
   }, [editBody]);
 
-
   const onFinish = async () => {
     try {
-      if (editBody.estado === "Inactivo") {
+      if (stateAd === "Inactivo") {
         editBody.fechaIniEst = null;
         editBody.fechaFinEst = null;
       } else if ((rangeDatesBody[0] && rangeDatesBody[1]) !== null) {
@@ -205,6 +215,90 @@ function EditRentalForm() {
   const onCancel = () => {
     navigate("/mis-anuncios");
     message.info("No se realizó ninguna modificación", 2);
+  }
+
+
+  useEffect(() => {
+    getRentalsByResidence(idMyAd).then((data) => {
+      setRentals(data);
+      setLoading(false);
+    })
+
+  }, [idMyAd])
+
+  const isDateDisabled = (current) => { //current es un dia del calendario, esta funcion se ejecuta por cada dia y evalua si debe estar deshabilitado
+    const startDate = dayjs(dataAd.fecha_inicio_publicado);
+    
+    let endDate;
+    if(stateAd==="Publicado"){
+      endDate = dayjs(dataAd.fecha_fin_publicado).add(1000, 'day')
+    }else if(stateAd==="Pausado"){
+      endDate = dayjs(dataAd.fecha_fin_publicado).add(1, 'day')
+    } // Se incrementa un dia para asegurar que la fecha final este incluida o habilitada
+    const actualDate = dayjs();
+
+    // booleano que determina si el current esta dentro de algun rango de reserva
+    const isWithinReservationRange = rentals.some((rental) => { // Verifica si al menos un elemento del arreglo de objetos rentals cumple con cierta condicion
+      const startPrevRental = dayjs(rental.fecha_inicio_reserva);
+      const endPrevRental = dayjs(rental.fecha_fin_reserva).add(1, 'day'); // Se incrementa un dia para asegurar que la fecha final este incluida
+
+      return (current.isAfter(startPrevRental) || current.isSame(startPrevRental)) && (current.isBefore(endPrevRental) || current.isSame(endPrevRental)); // Retorna true si la fecha_inicio_reserva se encuentra antes  o igual que el current y la fecha_fin_reserva se encuentra despues o igual que el current
+    });
+
+    const isWithinPauseRange = pauseDates.some((pause) => { // Verifica si al menos un elemento del arreglo de objetos rentals cumple con cierta condicion
+      
+      if(pause[0] && pause[1]){
+        const startPrevPause = dayjs(pause[0]);
+        const endPrevPause = dayjs(pause[1]).add(1, 'day'); // Se incrementa un dia para asegurar que la fecha final este incluida
+        
+        return (current.isAfter(startPrevPause) || current.isSame(startPrevPause)) && (current.isBefore(endPrevPause) || current.isSame(endPrevPause)); // Retorna true si la fecha_inicio_reserva se encuentra antes  o igual que el current y la fecha_fin_reserva se encuentra despues o igual que el current
+      }
+      
+    });
+
+    // Entra al condicional cuando el usuario selecciona una fecha de inicio 
+    if (selectedStartDate !== null) {
+      const nextReservation = rentals.reduce((accumulator, rental) => { // Devuelve una fecha de inicio de la reservacion mas cercana, el reduce acumula segun la condicion
+        const startRental = dayjs(rental.fecha_inicio_reserva);
+        if (startRental.isAfter(selectedStartDate) && startRental.isBefore(accumulator)) {
+          return startRental;
+        }
+        return accumulator;
+      }, dayjs().add(1000, 'years'));// Valor inicial del acumulador, que representa una fecha futura muy lejana, se utiliza para garantizar que cualquier fecha futura sea considerada mas cercana que la fecha inicial ficticia
+
+      const nextPause = pauseDates.reduce((accumulator, pause) => {
+        const startPause = dayjs(pause[0]);
+        if (startPause.isAfter(selectedStartDate) && startPause.isBefore(accumulator)) {
+          return startPause;
+        }
+        return accumulator;
+      }, dayjs().add(1000, 'years'));
+
+      let limitDate;
+      if(nextPause.isBefore(nextReservation)){
+        limitDate = nextPause;
+      }else{
+        limitDate = nextReservation;
+      }
+
+      // const limitDate = nextReservation; // El limite de la fecha fin cuando se selecciona una fecha de inicio será la fecha inicio de la reserva mas cercana si la fecha maxima esta antes de la reservacion mas cercana, caso contrario el limite de la fecha fin será la fecha maxima que el usuario pueda seleccionar
+      //Determina si una fecha (current) está deshabilitada o no
+      if (selectedStartDate.isBefore(limitDate) || selectedStartDate.isSame(limitDate)) { // Si la fecha limite que es la reserva mas cercana o la fecha maxima permitida por el host es menor o igual a la fecha final del anuncio, significa que hay disponibilidad
+        return current.isBefore(selectedStartDate) || current.isAfter(limitDate) || isWithinReservationRange || isWithinPauseRange; // Evalua si la fecha actual es anterior a la fecha de inicio seleccionada ||  Evalua si la fecha actual es posterior a la fecha limite (reserva mas cercana o fecha maxima permitida por el host)  || Evalua si la fecha actual esta dentro de alguna de las reservas existentes
+      } else {
+        return current.isBefore(selectedStartDate) || current.isAfter(endDate) || isWithinReservationRange || isWithinPauseRange; // Evalua si la fecha actual es anterior a la fecha de inicio seleccionada ||  Evalua si la fecha actual es posterior a la fecha limite del anuncio (reserva mas cercana o fecha maxima permitida por el host)  || Evalua si la fecha actual esta dentro de alguna de las reservas existentes
+      }
+    }
+
+    // Determina las fechas deshabilitadas al abrir el calendario de reserva
+    if (startDate && endDate) {
+      return (
+        // (current.isBefore(actualDate, 'day') || isWithinReservationRange)
+        (current.isBefore(startDate, 'day') || current.isAfter(endDate)) || isWithinReservationRange || isWithinPauseRange
+      );
+    }
+
+    return false; // Habilita las fechas que no se hayan considerado en los condicionales
   }
 
   return (
@@ -235,20 +329,30 @@ function EditRentalForm() {
                   onChange={(value) => handleSelectChange(value, "estadoAnuncio")}
                 >
                   {
-                    editBody.estado === "Alquilado"
-                      ? (
-                        <>
-                          <Option value="Pausado"> Pausado </Option>
-                          <Option value="Inactivo"> Inactivo </Option>
-                        </>
-                      )
-                      : (
-                        <>
-                          <Option value="Pausado"> Pausado </Option>
-                          <Option value="Inactivo"> Inactivo </Option>
-                          <Option value="Publicado"> Publicado </Option>
-                        </>
-                      )
+                    dataAd.estado_residencia === "Alquilado" ? (
+                      <>
+                        <Option value="Pausado"> Pausado </Option>
+                        <Option value="Inactivo"> Inactivo </Option>
+                      </>
+                    ) : dataAd.estado_residencia === "Pausado" ? (
+                      <>
+                        <Option value="Pausado"> Pausado </Option>
+                        <Option value="Inactivo"> Inactivo </Option>
+                        <Option value="Publicado"> Publicado </Option>
+                      </>
+                    ) : dataAd.estado_residencia === "Inactivo" ? (
+                      <>
+                        <Option value="Inactivo"> Inactivo </Option>
+                        <Option value="Pausado"> Pausado </Option>
+                        <Option value="Publicado"> Publicado </Option>
+                      </>
+                    ) : (
+                      <>
+                        <Option value="Publicado"> Publicado </Option>
+                        <Option value="Pausado"> Pausado </Option>
+                        <Option value="Inactivo"> Inactivo </Option>
+                      </>
+                    )
                   }
                 </Select>
               </Form.Item>
@@ -258,7 +362,7 @@ function EditRentalForm() {
                 label="Título de la Residencia"
                 rules={[
                   {
-                    required: ((editBody.estado === "Publicado") || (editBody.estado === "En Construcción") || (editBody.estado === "Previsualización") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el título de la residencia.',
+                    required: ((stateAd === "Publicado") || (stateAd === "En Construcción") || (stateAd === "Previsualización") || (stateAd === "Pausado") || (stateAd === "Inactivo")), message: 'Por favor, ingresa el título de la residencia.',
                   }, {
                     validator: (_, value) => {
                       if (value) {
@@ -301,7 +405,7 @@ function EditRentalForm() {
                 label="Número de Whatsapp"
                 rules={[
                   {
-                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingrese su número de Whatsapp.'
+                    required: ((stateAd === "Publicado") || (stateAd === "Pausado") || (stateAd === "Inactivo")), message: 'Por favor, ingrese su número de Whatsapp.'
                   }, {
                     validator: (_, value) => {
                       if (!value) {
@@ -335,7 +439,7 @@ function EditRentalForm() {
                 name="descripResid"
                 rules={[
                   {
-                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa una descripción del espacio.'
+                    required: ((stateAd === "Publicado") || (stateAd === "Pausado") || (stateAd === "Inactivo")), message: 'Por favor, ingresa una descripción del espacio.'
                   }, {
                     whitespace: true,
                     message: "No puede dejar en blanco este campo"
@@ -359,7 +463,7 @@ function EditRentalForm() {
                 label="Dirección"
                 rules={[
                   {
-                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa la dirección.'
+                    required: ((stateAd === "Publicado") || (stateAd === "Pausado") || (stateAd === "Inactivo")), message: 'Por favor, ingresa la dirección.'
                   }, {
                     whitespace: true,
                     message: "No puede dejar este espacio en blanco",
@@ -380,7 +484,7 @@ function EditRentalForm() {
                 label="Ubicación"
                 rules={[
                   {
-                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingrese un enlace de google maps.'
+                    required: ((stateAd === "Publicado") || (stateAd === "Pausado") || (stateAd === "Inactivo")), message: 'Por favor, ingrese un enlace de google maps.'
                   }, {
                     validator: (_, value) => {
                       if (!value) {
@@ -408,7 +512,7 @@ function EditRentalForm() {
               <Form.Item
                 name="paisResid"
                 label="País"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, seleccione su país.' }]
+                rules={[{ required: ((stateAd === "Publicado") || (stateAd === "Pausado") || (stateAd === "Inactivo")), message: 'Por favor, seleccione su país.' }]
                 }
                 hasFeedback
               >
@@ -429,7 +533,7 @@ function EditRentalForm() {
               <Form.Item
                 name="ciudadResid"
                 label="Ciudad"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, seleccione su ciudad.' }]
+                rules={[{ required: ((stateAd === "Publicado") || (stateAd === "Pausado") || (stateAd === "Inactivo")), message: 'Por favor, seleccione su ciudad.' }]
                 }
                 hasFeedback
               >
@@ -452,7 +556,7 @@ function EditRentalForm() {
                 label="Precio"
                 rules={[
                   {
-                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el precio de la residencia.'
+                    required: ((stateAd === "Publicado") || (stateAd === "Pausado") || (stateAd === "Inactivo")), message: 'Por favor, ingresa el precio de la residencia.'
                   }, {
                     validator: (_, value) =>
                       value && /^\d+$/.test(value) && parseInt(value, 10) <= 10000
@@ -479,7 +583,7 @@ function EditRentalForm() {
               <Form.Item
                 name="tipoResid"
                 label="Tipo de Residencia"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, seleccione el tipo de residencia.' }]
+                rules={[{ required: ((stateAd === "Publicado") || (stateAd === "Pausado") || (stateAd === "Inactivo")), message: 'Por favor, seleccione el tipo de residencia.' }]
                 }
                 hasFeedback
               >
@@ -498,7 +602,7 @@ function EditRentalForm() {
               <Form.Item
                 name="tipoAlojam"
                 label="Tipo de Alojamiento"
-                rules={[{ required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, seleccione el tipo de alojamiento.' }]}
+                rules={[{ required: ((stateAd === "Publicado") || (stateAd === "Pausado") || (stateAd === "Inactivo")), message: 'Por favor, seleccione el tipo de alojamiento.' }]}
                 hasFeedback
               >
                 <Select
@@ -517,7 +621,7 @@ function EditRentalForm() {
                 label="Número Máximo de dias"
                 rules={[
                   {
-                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el numero maximo de dias.'
+                    required: ((stateAd === "Publicado") || (stateAd === "Pausado") || (stateAd === "Inactivo")), message: 'Por favor, ingresa el numero maximo de dias.'
                   }, {
                     validator: (_, value) => {
                       const max = 10; // Establece el valor máximo permitido aquí
@@ -549,7 +653,7 @@ function EditRentalForm() {
                 label="Número Máximo de Huéspedes"
                 rules={[
                   {
-                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el numero maximo de Huesped.'
+                    required: ((stateAd === "Publicado") || (stateAd === "Pausado") || (stateAd === "Inactivo")), message: 'Por favor, ingresa el numero maximo de Huesped.'
                   }, {
                     validator: (_, value) => {
                       const max = 10; // Establece el valor máximo permitido aquí
@@ -582,7 +686,7 @@ function EditRentalForm() {
                 label="Número de Camas"
                 rules={[
                   {
-                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el número de camas.'
+                    required: ((stateAd === "Publicado") || (stateAd === "Pausado") || (stateAd === "Inactivo")), message: 'Por favor, ingresa el número de camas.'
                   }, {
                     validator: (_, value) => {
                       const max = 100; // Establece el valor máximo permitido aquí
@@ -614,7 +718,7 @@ function EditRentalForm() {
                 label="Número de Habitaciones"
                 rules={[
                   {
-                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el número de habitaciones.'
+                    required: ((stateAd === "Publicado") || (stateAd === "Pausado") || (stateAd === "Inactivo") || (stateAd === "Inactivo")), message: 'Por favor, ingresa el número de habitaciones.'
                   }, {
                     validator: (_, value) => {
                       const max = 100; // Establece el valor máximo permitido aquí
@@ -646,7 +750,7 @@ function EditRentalForm() {
                 label="Número de Baños"
                 rules={[
                   {
-                    required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingresa el número de baños.'
+                    required: ((stateAd === "Publicado") || (stateAd === "Pausado") || (stateAd === "Inactivo")), message: 'Por favor, ingresa el número de baños.'
                   }, {
                     validator: (_, value) => {
                       const max = 10; // Establece el valor máximo permitido aquí
@@ -680,7 +784,7 @@ function EditRentalForm() {
                 name="servicios"
                 label="Comodidades"
                 rules={[
-                  { required: ((editBody.estado === "Publicado") || (editBody.estado === "En Construcción") || (editBody.estado === "Previsualización") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")) && !isAtLeastFiveChecked },
+                  { required: ((stateAd === "Publicado") || (stateAd === "En Construcción") || (stateAd === "Previsualización") || (stateAd === "Pausado") || (stateAd === "Inactivo")) && !isAtLeastFiveChecked },
                   {
                     validator: (_, values) => {
                       if (isAtLeastFiveChecked) {
@@ -742,7 +846,7 @@ function EditRentalForm() {
                 name="servicios"
                 label="Caracteristicas"
                 rules={[
-                  { required: ((editBody.estado === "Publicado") || (editBody.estado === "En Construcción") || (editBody.estado === "Previsualización") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")) && !isAtLeastFiveChecked },
+                  { required: ((stateAd === "Publicado") || (stateAd === "En Construcción") || (stateAd === "Previsualización") || (stateAd === "Pausado") || (stateAd === "Inactivo")) && !isAtLeastFiveChecked },
                   {
                     validator: (_, values) => {
                       if (isAtLeastFiveChecked) {
@@ -805,7 +909,7 @@ function EditRentalForm() {
                 name="servicios"
                 label="Seguridad"
                 rules={[
-                  { required: ((editBody.estado === "Publicado") || (editBody.estado === "En Construcción") || (editBody.estado === "Previsualización") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")) && !isAtLeastFiveChecked },
+                  { required: ((stateAd === "Publicado") || (stateAd === "En Construcción") || (stateAd === "Previsualización") || (stateAd === "Pausado") || (stateAd === "Inactivo")) && !isAtLeastFiveChecked },
                   {
                     validator: (_, values) => {
                       if (isAtLeastFiveChecked) {
@@ -840,15 +944,15 @@ function EditRentalForm() {
 
               </Form.Item>
 
-              {editBody.estado !== "En Construcción" && editBody.estado !== "Previsualización" && editBody.estado !== "Inactivo" ?
+              {stateAd !== "En Construcción" && stateAd !== "Previsualización" && stateAd !== "Inactivo" && stateAd !== "Alquilado" ?
                 (
                   <div className="dates-edit-form-container">
-                    <h3>Fechas de duracion del anuncio</h3>
+                    <h3>{stateAd === "Pausado"? "Fechas de duracion del pausado del anuncio":"Fechas de duracion del anuncio"}</h3>
                     <Form.Item
                       name="rangeDates"
                       label="Fechas Inicio/Fin"
                       rules={[
-                        { required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado")), message: "" },
+                        { required: ((stateAd === "Publicado") || (stateAd === "Pausado")), message: "" },
                         {
                           validator: (_, values) => {
                             if ((rangeDatesBody[0] && rangeDatesBody[1]) !== null) {
@@ -874,9 +978,10 @@ function EditRentalForm() {
                         className="range-picker-edit-form"
                         placeholder={['Fecha Inicio', 'Fecha Fin']}
                         onChange={handleDateChange}
-                        disabledDate={(current) => {
-                          return dayjs().add(-1, 'days') >= current;
-                        }}
+                        disabledDate={isDateDisabled}
+                        onCalendarChange={(val) => { val ? setSelectedStartDate(val[0]) && setSelectedEndDate(val[1]) : null }}
+                        onOpenChange={(open) => { if (open) { setSelectedStartDate(null); setSelectedEndDate(null) } }}
+                        changeOnBlur
                       />
                     </Form.Item>
                   </div>
@@ -892,7 +997,7 @@ function EditRentalForm() {
 
                   rules={[
                     {
-                      required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingrese las intrucciones de check-in.'
+                      required: ((stateAd === "Publicado") || (stateAd === "Pausado") || (stateAd === "Inactivo")), message: 'Por favor, ingrese las intrucciones de check-in.'
                     }, {
                       whitespace: true,
                       message: "No puede dejar en blanco este campo"
@@ -916,7 +1021,7 @@ function EditRentalForm() {
                   label="Check Out"
                   rules={[
                     {
-                      required: ((editBody.estado === "Publicado") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")), message: 'Por favor, ingrese las instrucciones de check-out.'
+                      required: ((stateAd === "Publicado") || (stateAd === "Pausado") || (stateAd === "Inactivo")), message: 'Por favor, ingrese las instrucciones de check-out.'
                     }, {
                       whitespace: true,
                       message: "No puede dejar en blanco este campo"
@@ -942,7 +1047,7 @@ function EditRentalForm() {
             <Form.Item
               name="imagen"
               rules={[
-                { required: ((editBody.estado === "Publicado") || (editBody.estado === "En Construcción") || (editBody.estado === "Previsualización") || (editBody.estado === "Pausado") || (editBody.estado === "Inactivo")) && !isImageUploaded, message: "" },
+                { required: ((stateAd === "Publicado") || (stateAd === "En Construcción") || (stateAd === "Previsualización") || (stateAd === "Pausado") || (stateAd === "Inactivo")) && !isImageUploaded, message: "" },
                 {
                   validator: (_, value) => {
                     if (isImageUploaded) {
